@@ -45,7 +45,7 @@ import org.w3c.dom.NodeList;
 public class ArtefactExtractor {
 
 	public static String help() {
-		return "Usage:java -jar cocomo.jar sourceDir ReportFile";
+		return "Usage:java -jar cocomo.jar sourceDir ReportFile [CommandFile]";
 	}
 
 	/**
@@ -68,9 +68,19 @@ public class ArtefactExtractor {
 		}
 
 		ArtefactExtractor ae = new ArtefactExtractor(sourceDir, resultFile);
+
+		if (args.length > 2) {
+			String commandFile = args[2];
+			ae.setCommandFile(commandFile);
+		}
 		ae.extract();
 
 		System.out.println("Done!");
+
+	}
+
+	public void setCommandFile(String commandFile) {
+		this.commandFileName = commandFile;
 
 	}
 
@@ -80,6 +90,7 @@ public class ArtefactExtractor {
 	private final Collection<String>		xmlExtensions;
 	private final Map<String, Set<String>>	reportMappings;
 	private final Map<String, String>		sourceTypes;
+	private String							commandFileName	= null;
 
 	public ArtefactExtractor(String sourceDir, String resultFileName) {
 		this.reportFileName = resultFileName;
@@ -105,11 +116,27 @@ public class ArtefactExtractor {
 		FileOutputStream out = new FileOutputStream(result);
 		PrintWriter pw = new PrintWriter(out);
 		this.writeResultHeader(pw);
-		for (File f : this.rootDir.listFiles()) {
-			if (f.isDirectory() && !f.getName().startsWith(".")) {
-				System.out.println("Working on application: " + f.getName());
-				this.analyzeOneApplication(f, pw);
-				pw.flush();
+
+		if (this.commandFileName != null) {
+			Scanner commandScanner = new Scanner(new File(this.commandFileName));
+			while (commandScanner.hasNextLine()) {
+				String nextLine = commandScanner.nextLine().trim();
+				if (!nextLine.startsWith("#") && !nextLine.equals("")) {
+					File f = new File(nextLine);
+					if (f.isDirectory()) {
+						System.out.println("Working on application: " + f.getName());
+						this.analyzeOneApplication(f, pw);
+					}
+				}
+			}
+		} else {
+
+			for (File f : this.rootDir.listFiles()) {
+				if (f.isDirectory() && !f.getName().startsWith(".")) {
+					System.out.println("Working on application: " + f.getName());
+					this.analyzeOneApplication(f, pw);
+					pw.flush();
+				}
 			}
 		}
 		pw.flush();
